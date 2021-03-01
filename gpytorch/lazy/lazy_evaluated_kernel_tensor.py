@@ -13,15 +13,16 @@ from .non_lazy_tensor import lazify
 class LazyEvaluatedKernelTensor(LazyTensor):
     _check_size = False
 
-    def _check_args(self, x1, x2, kernel, last_dim_is_batch=False, **params):
+    def _check_args(self, x1, x2, *kernel_param, kernel, last_dim_is_batch=False, **params):
         if not torch.is_tensor(x1):
             return "x1 must be a tensor. Got {}".format(x1.__class__.__name__)
         if not torch.is_tensor(x2):
             return "x1 must be a tensor. Got {}".format(x1.__class__.__name__)
 
     def __init__(self, x1, x2, kernel, last_dim_is_batch=False, **params):
+        kernel_params = list(kernel.parameters())
         super(LazyEvaluatedKernelTensor, self).__init__(
-            x1, x2, kernel=kernel, last_dim_is_batch=last_dim_is_batch, **params
+            x1, x2, *kernel_params, kernel=kernel, last_dim_is_batch=last_dim_is_batch, **params
         )
         self.kernel = kernel
         self.x1 = x1
@@ -91,8 +92,8 @@ class LazyEvaluatedKernelTensor(LazyTensor):
         except IndexError:
             if any(not isinstance(bi, slice) for bi in batch_indices):
                 raise RuntimeError(
-                    f"Attempting to tensor index a non-batch matrix's batch dimensions. "
-                    "Got batch index {batch_indices} but my shape was {self.shape}"
+                    "Attempting to tensor index a non-batch matrix's batch dimensions. "
+                    f"Got batch index {batch_indices} but my shape was {self.shape}"
                 )
             x1 = x1.expand(*([1] * (len(batch_indices) - self.x1.dim() + 2)), *self.x1.shape)
             x1 = x1[(*batch_indices, row_index, dim_index)]
@@ -105,8 +106,8 @@ class LazyEvaluatedKernelTensor(LazyTensor):
         except IndexError:
             if any([not isinstance(bi, slice) for bi in batch_indices]):
                 raise RuntimeError(
-                    f"Attempting to tensor index a non-batch matrix's batch dimensions. "
-                    "Got batch index {batch_indices} but my shape was {self.shape}"
+                    "Attempting to tensor index a non-batch matrix's batch dimensions. "
+                    f"Got batch index {batch_indices} but my shape was {self.shape}"
                 )
             x2 = x2.expand(*([1] * (len(batch_indices) - self.x1.dim() + 2)), *self.x2.shape)
             x2 = x2[(*batch_indices, col_index, dim_index)]
